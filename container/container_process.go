@@ -6,6 +6,14 @@ import (
 	"syscall"
 )
 
+/*
+ * 这里是父进程，也就是当前进程执行的内容
+ * 1. 这里的 /proc/self/exe 调用中，/proc/self/ 指向当前正在执行的进程的环境，exec 是自己调用自己，使用这种方式对创造出来的进程进行初始化
+ * 2. 后面的 args 是参数，其中 init 是传递给本进程的第一个参数，在本例中，其实就是会去调用 initCommand 去初始化进程的一些环境和资源
+ * 3. Cloneflags 参数是用来设置进程的 Namespace 类型的，这里设置了五个 Namespace，分别是 UTS、PID、Mount、IPC、Network
+ * 4. 如果 tty 为 true，那么就会将当前进程的标准输入、输出、错误输出都映射到新创建出来的进程中
+ * 5. 返回创建好的 cmd
+ */
 func NewParentProcess(tty bool, command string) *exec.Cmd {
 	args := []string{"init", command}
 	cmd := exec.Command("/proc/self/exe", args...)
