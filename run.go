@@ -1,14 +1,17 @@
 package main
 
 import (
-	"mydocker/container"
 	"os"
 	"strings"
+
+	"mydocker/cgroups"
+	"mydocker/cgroups/subsystems"
+	"mydocker/container"
 
 	log "github.com/sirupsen/logrus"
 )
 
-func Run(tty bool, comArray []string) {
+func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig) {
 	parent, writePipe := container.NewParentProcess(tty)
 	if parent == nil {
 		log.Errorf("New parent process error")
@@ -17,13 +20,20 @@ func Run(tty bool, comArray []string) {
 	if err := parent.Start(); err != nil {
 		log.Errorf("Run parent.Start() error: %v", err)
 	}
+
+	// 创建 cgroup manager，并通过调用 set 和 apply 设置资源限制并使限制在容器上生效
+	cgroupManager := cgroups.NewCgroupManager("mydocker-cgroup")
+	defer cgroupManager.Destroy()
+	_ = cgroupManager.Set(res)
+	_ = cgroupManager.Apply(parent.Process.Pid, res)
+
 	// 在子进程创建后通过管道来发送参数
-	sendInitCommand(comArray, writePipe)
+	sendInitCommand(cmdArray, writePipe)
 	_ = parent.Wait()
 }
 
-func sendInitCommand(comArray []string, writePipe *os.File) {
-	command := strings.Join(comArray, " ")
+func sendInitCommand(cmdArray []string, writePipe *os.File) {
+	command := strings.Join(cmdArray, " ")
 	log.Infof("command all is %s", command)
 	_, _ = writePipe.WriteString(command)
 	_ = writePipe.Close()

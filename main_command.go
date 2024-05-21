@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"mydocker/cgroups/subsystems"
 	"mydocker/container"
 
 	log "github.com/sirupsen/logrus"
@@ -18,6 +19,18 @@ var runCommand = cli.Command{
 			Name:  "it", // 简单起见，这里把 -i 和 -t 参数合并成一个
 			Usage: "enable tty",
 		},
+		cli.StringFlag{
+			Name:  "mem", // 限制进程内存使用量
+			Usage: "memory limit, e.g.: -mem 100m",
+		},
+		cli.StringFlag{
+			Name:  "cpu", // 限制进程 cpu 使用率
+			Usage: "cpu quota, e.g.: -cpu 100",
+		},
+		cli.StringFlag{
+			Name:  "cpuset", // 限制进程 cpu 使用核数
+			Usage: "cpuset limit, e.g.: -cpuset 2,4",
+		},
 	},
 	/*
 	 * run 命令执行的真正函数
@@ -29,9 +42,17 @@ var runCommand = cli.Command{
 		if len(context.Args()) < 1 {
 			return fmt.Errorf("missing container command")
 		}
-		cmd := context.Args().Get(0)
+		var cmdArray []string
+		for _, arg := range context.Args() {
+			cmdArray = append(cmdArray, arg)
+		}
 		tty := context.Bool("it")
-		Run(tty, []string{cmd})
+		resConf := &subsystems.ResourceConfig{
+			MemoryLimit: context.String("mem"),
+			CpuCfsQuota: context.Int("cpu"),
+			CpuSet:      context.String("cpuset"),
+		}
+		Run(tty, cmdArray, resConf)
 		return nil
 	},
 }

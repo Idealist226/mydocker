@@ -13,7 +13,7 @@
             "program": "${workspaceFolder}/mydocker",
             "console": "integratedTerminal",
             "asRoot": true,
-            "args": ["run", "-it", "/bin/ls"]
+            "args": ["run", "-it", "-mem", "10m", "/bin/ls"]
         },
         {
             "name": "单元测试",
