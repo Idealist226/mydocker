@@ -19,6 +19,7 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig) {
 	}
 	if err := parent.Start(); err != nil {
 		log.Errorf("Run parent.Start() error: %v", err)
+		return
 	}
 
 	// 创建 cgroup manager，并通过调用 set 和 apply 设置资源限制并使限制在容器上生效
@@ -30,6 +31,7 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig) {
 	// 在子进程创建后通过管道来发送参数
 	sendInitCommand(cmdArray, writePipe)
 	_ = parent.Wait()
+	container.DeleteWorkSpace("/root")
 }
 
 func sendInitCommand(cmdArray []string, writePipe *os.File) {
