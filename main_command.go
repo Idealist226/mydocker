@@ -31,6 +31,10 @@ var runCommand = cli.Command{
 			Name:  "cpuset", // 限制进程 cpu 使用核数
 			Usage: "cpuset limit, e.g.: -cpuset 2,4",
 		},
+		cli.StringFlag{
+			Name:  "v", // 数据卷挂载
+			Usage: "volume, e.g.: -v /data:/data",
+		},
 	},
 	/*
 	 * run 命令执行的真正函数
@@ -52,7 +56,8 @@ var runCommand = cli.Command{
 			CpuCfsQuota: context.Int("cpu"),
 			CpuSet:      context.String("cpuset"),
 		}
-		Run(tty, cmdArray, resConf)
+		volume := context.String("v")
+		Run(tty, cmdArray, resConf, volume)
 		return nil
 	},
 }

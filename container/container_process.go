@@ -20,7 +20,7 @@ import (
  * 4. 如果 tty 为 true，那么就会将当前进程的标准输入、输出、错误输出都映射到新创建出来的进程中
  * 5. 返回创建好的 cmd
  */
-func NewParentProcess(tty bool) (*exec.Cmd, *os.File) {
+func NewParentProcess(tty bool, volume string) (*exec.Cmd, *os.File) {
 	// 创建匿名管道用于传递参数，将 readPipe 作为子进程的 ExtraFiles，子进程从 readPipe 中读取参数
 	// 父进程中则通过 writePipe 将参数写入管道
 	readPipe, writePipe, err := os.Pipe()
@@ -40,16 +40,26 @@ func NewParentProcess(tty bool) (*exec.Cmd, *os.File) {
 	}
 	cmd.ExtraFiles = []*os.File{readPipe}
 	rootPath := "/root"
-	NewWorkSpace(rootPath)
+	NewWorkSpace(rootPath, volume)
 	cmd.Dir = path.Join(rootPath, "merged")
 	return cmd, writePipe
 }
 
 // NewWorkSpace Create an Overlay2 filesystem as container root workspace
-func NewWorkSpace(rootPath string) {
+func NewWorkSpace(rootPath string, volume string) {
 	createLower(rootPath)
 	createDirs(rootPath)
 	mountOverlayFS(rootPath)
+
+	if volume != "" {
+		mntPath := path.Join(rootPath, "merged")
+		hostPath, containerPath, err := volumeExtract(volume)
+		if err != nil {
+			log.Errorf("extract volume failed, maybe volume parameter input is not correct, detail:%v", err)
+			return
+		}
+		mountVolume(mntPath, hostPath, containerPath)
+	}
 }
 
 // createLower 将 busybox 作为 overlayfs 的 lower 层
@@ -106,8 +116,19 @@ func mountOverlayFS(rootPath string) {
 }
 
 // DeleteWorkSpace Delete the AUFS filesystem while container exit
-func DeleteWorkSpace(rootPath string) {
-	umountOverlayFS(path.Join(rootPath, "merged"))
+func DeleteWorkSpace(rootPath string, volume string) {
+	mntPath := path.Join(rootPath, "merged")
+	// 如果制定了 volume 则需要 umount volume
+	// NOTE: 一定要要先 umount volume ，然后再删除目录，否则由于 bind mount 存在，删除临时目录会导致 volume 目录中的数据丢失。
+	if volume != "" {
+		_, containerPath, err := volumeExtract(volume)
+		if err != nil {
+			log.Errorf("extract volume failed, maybe volume parameter input is not correct, detail:%v", err)
+			return
+		}
+		umountVolume(mntPath, containerPath)
+	}
+	umountOverlayFS(mntPath)
 	deleteDirs(rootPath)
 }
 

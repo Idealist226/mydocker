@@ -11,8 +11,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig) {
-	parent, writePipe := container.NewParentProcess(tty)
+func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume string) {
+	parent, writePipe := container.NewParentProcess(tty, volume)
 	if parent == nil {
 		log.Errorf("New parent process error")
 		return
@@ -31,7 +31,7 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig) {
 	// 在子进程创建后通过管道来发送参数
 	sendInitCommand(cmdArray, writePipe)
 	_ = parent.Wait()
-	container.DeleteWorkSpace("/root")
+	container.DeleteWorkSpace("/root", volume)
 }
 
 func sendInitCommand(cmdArray []string, writePipe *os.File) {
