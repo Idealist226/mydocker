@@ -30,8 +30,11 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume str
 
 	// 在子进程创建后通过管道来发送参数
 	sendInitCommand(cmdArray, writePipe)
-	_ = parent.Wait()
-	container.DeleteWorkSpace("/root", volume)
+	// 如果是 tty，那么父进程等待，就是前台运行；否则就是跳过，实现后台运行
+	if tty {
+		_ = parent.Wait()
+		container.DeleteWorkSpace("/root", volume)
+	}
 }
 
 func sendInitCommand(cmdArray []string, writePipe *os.File) {

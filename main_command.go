@@ -19,6 +19,10 @@ var runCommand = cli.Command{
 			Name:  "it", // 简单起见，这里把 -i 和 -t 参数合并成一个
 			Usage: "enable tty",
 		},
+		cli.BoolFlag{
+			Name:  "d",
+			Usage: "detach container",
+		},
 		cli.StringFlag{
 			Name:  "mem", // 限制进程内存使用量
 			Usage: "memory limit, e.g.: -mem 100m",
@@ -50,7 +54,17 @@ var runCommand = cli.Command{
 		for _, arg := range context.Args() {
 			cmdArray = append(cmdArray, arg)
 		}
+
 		tty := context.Bool("it")
+		detach := context.Bool("d")
+		if tty && detach {
+			return fmt.Errorf("it and d flag can not both provided")
+		}
+		// 如果不指定后台运行，则默认前台运行
+		if !detach {
+			tty = true
+		}
+
 		resConf := &subsystems.ResourceConfig{
 			MemoryLimit: context.String("mem"),
 			CpuCfsQuota: context.Int("cpu"),
