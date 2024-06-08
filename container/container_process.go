@@ -12,6 +12,25 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	RUNNING       = "running"
+	STOP          = "stopped"
+	Exit          = "exited"
+	InfoLoc       = "/var/lib/mydocker/containers/"
+	InfoLocFormat = InfoLoc + "%s/"
+	ConfigName    = "config.json"
+	IDLength      = 10
+)
+
+type Info struct {
+	Pid         string `json:"pid"`        // 容器的init进程在宿主机上的 PID
+	Id          string `json:"id"`         // 容器Id
+	Name        string `json:"name"`       // 容器名
+	Command     string `json:"command"`    // 容器内init运行命令
+	CreatedTime string `json:"createTime"` // 创建时间
+	Status      string `json:"status"`     // 容器的状态
+}
+
 /*
  * 这里是父进程，也就是当前进程执行的内容
  * 1. 这里的 /proc/self/exe 调用中，/proc/self/ 指向当前正在执行的进程的环境，exec 是自己调用自己，使用这种方式对创造出来的进程进行初始化

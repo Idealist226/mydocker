@@ -39,6 +39,10 @@ var runCommand = cli.Command{
 			Name:  "v", // 数据卷挂载
 			Usage: "volume, e.g.: -v /data:/data",
 		},
+		cli.StringFlag{
+			Name:  "name",
+			Usage: "container name",
+		},
 	},
 	/*
 	 * run 命令执行的真正函数
@@ -54,6 +58,7 @@ var runCommand = cli.Command{
 		for _, arg := range context.Args() {
 			cmdArray = append(cmdArray, arg)
 		}
+		log.Infof("command all is %s", cmdArray)
 
 		tty := context.Bool("it")
 		detach := context.Bool("d")
@@ -71,7 +76,8 @@ var runCommand = cli.Command{
 			CpuSet:      context.String("cpuset"),
 		}
 		volume := context.String("v")
-		Run(tty, cmdArray, resConf, volume)
+		containerName := context.String("name")
+		Run(tty, cmdArray, resConf, volume, containerName)
 		return nil
 	},
 }
@@ -95,6 +101,15 @@ var commitCommand = cli.Command{
 		}
 		imageName := context.Args().Get(0)
 		commitContainer(imageName)
+		return nil
+	},
+}
+
+var listCommand = cli.Command{
+	Name:  "ps",
+	Usage: "list all the containers",
+	Action: func(context *cli.Context) error {
+		ListContainers()
 		return nil
 	},
 }
