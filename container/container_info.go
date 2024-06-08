@@ -40,16 +40,16 @@ func RecordContainerInfo(containerPid int, cmdArray []string, containerName, con
 
 	// 拼接出存储容器信息文件的路径，如果目录不存在则级联创建
 	dirPath := fmt.Sprintf(InfoLocFormat, containerId)
-	if err := os.MkdirAll(dirPath, constant.Perm0622); err != nil {
+	if err = os.MkdirAll(dirPath, constant.Perm0622); err != nil {
 		return errors.WithMessagef(err, "mkdir %s failed", dirPath)
 	}
 	// 将容器信息写入文件
 	fileName := path.Join(dirPath, ConfigName)
 	file, err := os.Create(fileName)
-	defer file.Close()
 	if err != nil {
 		return errors.WithMessagef(err, "create file %s failed", fileName)
 	}
+	defer file.Close()
 	if _, err = file.WriteString(jsonStr); err != nil {
 		return errors.WithMessagef(err, "write container info to file %s failed", fileName)
 	}
@@ -77,4 +77,8 @@ func randStringBytes(n int) string {
 		b[i] = letterBytes[r.Intn(len(letterBytes))]
 	}
 	return string(b)
+}
+
+func GetLogfile(containerId string) string {
+	return fmt.Sprintf(LogFile, containerId)
 }

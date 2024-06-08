@@ -20,6 +20,7 @@ const (
 	InfoLocFormat = InfoLoc + "%s/"
 	ConfigName    = "config.json"
 	IDLength      = 10
+	LogFile       = "%s-json.log"
 )
 
 type Info struct {
@@ -39,7 +40,7 @@ type Info struct {
  * 4. 如果 tty 为 true，那么就会将当前进程的标准输入、输出、错误输出都映射到新创建出来的进程中
  * 5. 返回创建好的 cmd
  */
-func NewParentProcess(tty bool, volume string) (*exec.Cmd, *os.File) {
+func NewParentProcess(tty bool, volume string, containerId string) (*exec.Cmd, *os.File) {
 	// 创建匿名管道用于传递参数，将 readPipe 作为子进程的 ExtraFiles，子进程从 readPipe 中读取参数
 	// 父进程中则通过 writePipe 将参数写入管道
 	readPipe, writePipe, err := os.Pipe()
@@ -56,6 +57,22 @@ func NewParentProcess(tty bool, volume string) (*exec.Cmd, *os.File) {
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
+	} else {
+		// 对于后台运行容器，将 stdout、stderr 重定向到日志文件中，便于后续查看
+		dirPath := fmt.Sprintf(InfoLocFormat, containerId)
+		if err := os.MkdirAll(dirPath, constant.Perm0622); err != nil {
+			log.Errorf("NewParentProcess Mkdir dir %s error %v", dirPath, err)
+			return nil, nil
+		}
+		stdLogFilePath := path.Join(dirPath, GetLogfile(containerId))
+		stdLogFile, err := os.Create(stdLogFilePath)
+		if err != nil {
+			log.Errorf("NewParentProcess Create log file %s error %v", stdLogFilePath, err)
+			return nil, nil
+
+		}
+		cmd.Stdout = stdLogFile
+		cmd.Stderr = stdLogFile
 	}
 	cmd.ExtraFiles = []*os.File{readPipe}
 	rootPath := "/root"
