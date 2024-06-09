@@ -59,7 +59,7 @@ func NewParentProcess(tty bool, volume string, containerId string) (*exec.Cmd, *
 		cmd.Stderr = os.Stderr
 	} else {
 		// 对于后台运行容器，将 stdout、stderr 重定向到日志文件中，便于后续查看
-		dirPath := fmt.Sprintf(InfoLocFormat, containerId)
+		dirPath := GetConfigDirPath(containerId)
 		if err := os.MkdirAll(dirPath, constant.Perm0622); err != nil {
 			log.Errorf("NewParentProcess Mkdir dir %s error %v", dirPath, err)
 			return nil, nil

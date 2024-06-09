@@ -42,3 +42,29 @@ func StopContainer(containerId string) {
 		log.Errorf("Write file %s error:%v", configFilePath, err)
 	}
 }
+
+func RemoveContainer(containerId string, force bool) {
+	containerInfo, err := container.GetInfoByContainerId(containerId)
+	if err != nil {
+		log.Errorf("Get container %s info error %v", containerId, err)
+		return
+	}
+	switch containerInfo.Status {
+	case container.STOP:
+		// 如果容器已经停止，直接删除容器信息
+		container.DeleteContainerInfo(containerId)
+	case container.RUNNING:
+		// 如果容器正在运行，且强制删除为 true，则停止容器后删除容器信息
+		if !force {
+			log.Errorf("Couldn't remove running container [%s], Stop the container before attempting removal or"+
+				" force remove", containerId)
+			return
+		}
+		StopContainer(containerId)
+		RemoveContainer(containerId, force)
+	default:
+		log.Errorf("Couldn't remove container,invalid status %s", containerInfo.Status)
+		return
+	}
+
+}

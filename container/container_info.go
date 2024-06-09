@@ -39,7 +39,7 @@ func RecordContainerInfo(containerPid int, cmdArray []string, containerName, con
 	jsonStr := string(jsonBytes)
 
 	// 拼接出存储容器信息文件的路径，如果目录不存在则级联创建
-	dirPath := fmt.Sprintf(InfoLocFormat, containerId)
+	dirPath := GetConfigDirPath(containerId)
 	if err = os.MkdirAll(dirPath, constant.Perm0622); err != nil {
 		return errors.WithMessagef(err, "mkdir %s failed", dirPath)
 	}
@@ -58,7 +58,7 @@ func RecordContainerInfo(containerPid int, cmdArray []string, containerName, con
 }
 
 func DeleteContainerInfo(containerId string) {
-	dirPath := fmt.Sprintf(InfoLocFormat, containerId)
+	dirPath := GetConfigDirPath(containerId)
 	if err := os.RemoveAll(dirPath); err != nil {
 		log.Errorf("Remove dir %s error %v", dirPath, err)
 	}
@@ -83,8 +83,12 @@ func GetLogFileName(containerId string) string {
 	return fmt.Sprintf(LogFile, containerId)
 }
 
+func GetConfigDirPath(containerId string) string {
+	return fmt.Sprintf(InfoLocFormat, containerId)
+}
+
 func GetConfigFilePath(containerId string) string {
-	dirPath := fmt.Sprintf(InfoLocFormat, containerId)
+	dirPath := GetConfigDirPath(containerId)
 	configFilePath := path.Join(dirPath, ConfigName)
 	return configFilePath
 }
