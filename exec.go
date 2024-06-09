@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"os"
 	"os/exec"
 	"strings"
@@ -20,7 +19,7 @@ const (
 
 func ExecContainer(containerId string, cmdArray []string) {
 	// 根据传进来的容器 ID 获取对应的 PID
-	pid, err := getPidByContainerId(containerId)
+	pid, err := container.GetPidByContainerId(containerId)
 	if err != nil {
 		log.Errorf("Exec container getContainerPidByName %s error %v", containerId, err)
 		return
@@ -40,18 +39,4 @@ func ExecContainer(containerId string, cmdArray []string) {
 	if err = cmd.Run(); err != nil {
 		log.Errorf("Exec container %s error %v", containerId, err)
 	}
-}
-func getPidByContainerId(containerId string) (string, error) {
-	// 查找记录容器信息的文件路径
-	configFilePath := container.GetConfigFilePath(containerId)
-	// 读取内容并解析
-	contentBytes, err := os.ReadFile(configFilePath)
-	if err != nil {
-		return "", err
-	}
-	var containerInfo container.Info
-	if err = json.Unmarshal(contentBytes, &containerInfo); err != nil {
-		return "", err
-	}
-	return containerInfo.Pid, nil
 }

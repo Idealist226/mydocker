@@ -11,7 +11,6 @@ package nsenter
 #include <fcntl.h>
 
 __attribute__((constructor)) void enter_namespace(void) {
-	printf("cgo come in\n");
 	// 这里的代码会在 Go 运行时启动前执行，它会在单线程的 C 上下文中运行
 	char *mydocker_pid;
 	mydocker_pid = getenv("mydocker_pid");

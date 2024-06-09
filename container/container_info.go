@@ -88,3 +88,21 @@ func GetConfigFilePath(containerId string) string {
 	configFilePath := path.Join(dirPath, ConfigName)
 	return configFilePath
 }
+
+func GetInfoByContainerId(containerId string) (*Info, error) {
+	configFilePath := GetConfigFilePath(containerId)
+	contentBytes, err := os.ReadFile(configFilePath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "read file %s", configFilePath)
+	}
+	var containerInfo Info
+	if err = json.Unmarshal(contentBytes, &containerInfo); err != nil {
+		return nil, err
+	}
+	return &containerInfo, nil
+}
+
+func GetPidByContainerId(containerId string) (string, error) {
+	containerInfo, err := GetInfoByContainerId(containerId)
+	return containerInfo.Pid, err
+}
