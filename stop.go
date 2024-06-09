@@ -52,7 +52,12 @@ func RemoveContainer(containerId string, force bool) {
 	switch containerInfo.Status {
 	case container.STOP:
 		// 如果容器已经停止，直接删除容器信息
-		container.DeleteContainerInfo(containerId)
+		// 先删除配置目录，再删除 rootfs 目录
+		if err = container.DeleteContainerInfo(containerId); err != nil {
+			log.Errorf("Remove container [%s]'s config failed, detail: %v", containerId, err)
+			return
+		}
+		container.DeleteWorkSpace(containerId, containerInfo.Volume)
 	case container.RUNNING:
 		// 如果容器正在运行，且强制删除为 true，则停止容器后删除容器信息
 		if !force {
@@ -60,6 +65,7 @@ func RemoveContainer(containerId string, force bool) {
 				" force remove", containerId)
 			return
 		}
+		log.Infof("force delete running container [%s]", containerId)
 		StopContainer(containerId)
 		RemoveContainer(containerId, force)
 	default:

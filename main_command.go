@@ -13,7 +13,7 @@ import (
 var runCommand = cli.Command{
 	Name: "run",
 	Usage: `Create a container with namespace and cgroups limit
-			mydocker run -it [command]`,
+			mydocker run -it/-d [-name containerName] imageName command [arg...]`,
 	// 每个命令都可以通过 cli.Flag 指定具体参数
 	Flags: []cli.Flag{
 		cli.BoolFlag{
@@ -60,6 +60,10 @@ var runCommand = cli.Command{
 			cmdArray = append(cmdArray, arg)
 		}
 
+		// get image name
+		imageName := cmdArray[0]
+		cmdArray = cmdArray[1:]
+
 		tty := context.Bool("it")
 		detach := context.Bool("d")
 		if tty && detach {
@@ -77,7 +81,7 @@ var runCommand = cli.Command{
 		}
 		volume := context.String("v")
 		containerName := context.String("name")
-		Run(tty, cmdArray, resConf, volume, containerName)
+		Run(tty, cmdArray, resConf, volume, containerName, imageName)
 		return nil
 	},
 }
@@ -94,14 +98,14 @@ var initCommand = cli.Command{
 
 var commitCommand = cli.Command{
 	Name:  "commit",
-	Usage: "commit container to image",
+	Usage: "commit container to image, e.g. mydocker commit 123456789 myimage",
 	Action: func(context *cli.Context) error {
-		if len(context.Args()) < 1 {
-			return fmt.Errorf("missing image name")
+		if len(context.Args()) < 2 {
+			return fmt.Errorf("missing container name and image name")
 		}
-		imageName := context.Args().Get(0)
-		CommitContainer(imageName)
-		return nil
+		containerId := context.Args().Get(0)
+		imageName := context.Args().Get(1)
+		return CommitContainer(containerId, imageName)
 	},
 }
 
@@ -129,7 +133,7 @@ var logCommand = cli.Command{
 
 var execCommand = cli.Command{
 	Name:  "exec",
-	Usage: "exec a command in container",
+	Usage: "exec a command in container, e.g. mydocker exec 123456789 /bin/sh",
 	Action: func(context *cli.Context) error {
 		// 如果环境变量存在，说明 C 代码已经运行过了，即 setns 系统调用已经执行了，
 		// 这里就直接返回，避免重复执行

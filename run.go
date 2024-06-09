@@ -11,11 +11,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume string, containerName string) {
+func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, containerName, imageName string) {
 	// 生成容器 ID
 	containerId := container.GenerateContainerID()
 
-	parent, writePipe := container.NewParentProcess(tty, volume, containerId)
+	parent, writePipe := container.NewParentProcess(tty, volume, containerId, imageName)
 	if parent == nil {
 		log.Errorf("New parent process error")
 		return
@@ -26,7 +26,7 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume str
 	}
 
 	// record container info
-	err := container.RecordContainerInfo(parent.Process.Pid, cmdArray, containerName, containerId)
+	err := container.RecordContainerInfo(parent.Process.Pid, cmdArray, containerName, containerId, volume)
 	if err != nil {
 		log.Errorf("Record container info error %v", err)
 		return
@@ -43,7 +43,7 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume str
 	// 如果是 tty，那么父进程等待，就是前台运行；否则就是跳过，实现后台运行
 	if tty {
 		_ = parent.Wait()
-		container.DeleteWorkSpace("/root", volume)
+		container.DeleteWorkSpace(containerId, volume)
 		container.DeleteContainerInfo(containerId)
 	}
 }
