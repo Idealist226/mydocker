@@ -7,7 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func commitContainer(imageName string) {
+func CommitContainer(imageName string) {
 	mntPath := "/root/merged"
 	imageTar := "/root/" + imageName + ".tar"
 	fmt.Println("commitContainer imageTar:", imageTar)

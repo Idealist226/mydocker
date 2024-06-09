@@ -79,6 +79,12 @@ func randStringBytes(n int) string {
 	return string(b)
 }
 
-func GetLogfile(containerId string) string {
+func GetLogFileName(containerId string) string {
 	return fmt.Sprintf(LogFile, containerId)
+}
+
+func GetConfigFilePath(containerId string) string {
+	dirPath := fmt.Sprintf(InfoLocFormat, containerId)
+	configFilePath := path.Join(dirPath, ConfigName)
+	return configFilePath
 }

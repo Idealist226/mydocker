@@ -11,8 +11,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func logContainer(containerId string) {
-	logFileLocation := path.Join(fmt.Sprintf(container.InfoLocFormat, containerId), container.GetLogfile(containerId))
+func LogContainer(containerId string) {
+	logFileLocation := path.Join(fmt.Sprintf(container.InfoLocFormat, containerId), container.GetLogFileName(containerId))
 	logFile, err := os.Open(logFileLocation)
 	defer logFile.Close()
 	if err != nil {

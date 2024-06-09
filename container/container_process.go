@@ -64,7 +64,7 @@ func NewParentProcess(tty bool, volume string, containerId string) (*exec.Cmd, *
 			log.Errorf("NewParentProcess Mkdir dir %s error %v", dirPath, err)
 			return nil, nil
 		}
-		stdLogFilePath := path.Join(dirPath, GetLogfile(containerId))
+		stdLogFilePath := path.Join(dirPath, GetLogFileName(containerId))
 		stdLogFile, err := os.Create(stdLogFilePath)
 		if err != nil {
 			log.Errorf("NewParentProcess Create log file %s error %v", stdLogFilePath, err)

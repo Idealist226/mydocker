@@ -3,6 +3,9 @@ package main
 import (
 	"os"
 
+	// 需要导入 nsenter 包，以触发代码
+	_ "mydocker/nsenter"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -22,6 +25,7 @@ func main() {
 		commitCommand,
 		listCommand,
 		logCommand,
+		execCommand,
 	}
 
 	app.Before = func(context *cli.Context) error {
