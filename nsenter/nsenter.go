@@ -43,8 +43,6 @@ __attribute__((constructor)) void enter_namespace(void) {
 		// 执行setns系统调用，进入对应namespace
 		if (setns(fd, 0) == -1) {
 			fprintf(stderr, "setns on %s namespace failed: %s\n", namespaces[i], strerror(errno));
-		} else {
-			fprintf(stdout, "setns on %s namespace succeeded\n", namespaces[i]);
 		}
 		close(fd);
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -35,8 +36,22 @@ func ExecContainer(containerId string, cmdArray []string) {
 	log.Infof("container pid: %s command: %s", pid, cmdStr)
 	_ = os.Setenv(EnvExecPid, pid)
 	_ = os.Setenv(EnvExecCmd, cmdStr)
+	cmd.Env = append(os.Environ(), getEnvsByPid(pid)...)
 
 	if err = cmd.Run(); err != nil {
 		log.Errorf("Exec container %s error %v", containerId, err)
 	}
+}
+
+// getEnvsByPid 读取指定 PID 进程的环境变量
+func getEnvsByPid(pid string) []string {
+	path := fmt.Sprintf("/proc/%s/environ", pid)
+	contentBytes, err := os.ReadFile(path)
+	if err != nil {
+		log.Errorf("Read file %s error %v", path, err)
+		return nil
+	}
+	// env split by \u0000
+	envs := strings.Split(string(contentBytes), "\u0000")
+	return envs
 }

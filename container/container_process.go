@@ -41,7 +41,7 @@ type Info struct {
  * 4. 如果 tty 为 true，那么就会将当前进程的标准输入、输出、错误输出都映射到新创建出来的进程中
  * 5. 返回创建好的 cmd
  */
-func NewParentProcess(tty bool, volume, containerId, imageName string) (*exec.Cmd, *os.File) {
+func NewParentProcess(tty bool, volume, containerId, imageName string, envSlice []string) (*exec.Cmd, *os.File) {
 	// 创建匿名管道用于传递参数，将 readPipe 作为子进程的 ExtraFiles，子进程从 readPipe 中读取参数
 	// 父进程中则通过 writePipe 将参数写入管道
 	readPipe, writePipe, err := os.Pipe()
@@ -75,6 +75,7 @@ func NewParentProcess(tty bool, volume, containerId, imageName string) (*exec.Cm
 		cmd.Stdout = stdLogFile
 		cmd.Stderr = stdLogFile
 	}
+	cmd.Env = append(os.Environ(), envSlice...)
 	cmd.ExtraFiles = []*os.File{readPipe}
 	NewWorkSpace(containerId, imageName, volume)
 	cmd.Dir = utils.GetMerged(containerId)

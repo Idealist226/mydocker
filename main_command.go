@@ -44,6 +44,10 @@ var runCommand = cli.Command{
 			Name:  "name",
 			Usage: "container name",
 		},
+		cli.StringSliceFlag{ // 针对多个环境变量的情况
+			Name:  "e", // 环境变量
+			Usage: "set environment variables, e.g. -e name=mydocker",
+		},
 	},
 	/*
 	 * run 命令执行的真正函数
@@ -81,7 +85,8 @@ var runCommand = cli.Command{
 		}
 		volume := context.String("v")
 		containerName := context.String("name")
-		Run(tty, cmdArray, resConf, volume, containerName, imageName)
+		envSlice := context.StringSlice("e")
+		Run(tty, cmdArray, resConf, volume, containerName, imageName, envSlice)
 		return nil
 	},
 }
