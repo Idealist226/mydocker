@@ -182,7 +182,7 @@ func DeleteNetwork(networkName string) error {
 	// 从文件中加载网络信息
 	networks, err := loadNetwork()
 	if err != nil {
-		return err
+		return errors.WithMessage(err, "load network from file failed")
 	}
 	// 获取网络信息
 	net, ok := networks[networkName]
@@ -194,7 +194,7 @@ func DeleteNetwork(networkName string) error {
 		return errors.Wrap(err, "remove Network gateway ip failed")
 	}
 	// 调用网络驱动的删除方法
-	if err = drivers[net.Driver].Delete(net.Name); err != nil {
+	if err = drivers[net.Driver].Delete(net); err != nil {
 		return errors.Wrap(err, "remove Network DriverError failed")
 	}
 	// 最后从网络的配直目录中删除该网络对应的配置文件
@@ -234,11 +234,40 @@ func Connect(networkName string, info *container.Info) (net.IP, error) {
 		return ip, err
 	}
 	// 配置端口映射信息，例如 mydocker run -p 8080:80
-	return ip, configPortMapping(ep)
+	return ip, addPortMapping(ep)
 }
 
-func Disconnect() {
+/* 将容器中指定网络移除 */
+func Disconnect(networkName string, info *container.Info) error {
+	networks, err := loadNetwork()
+	if err != nil {
+		return errors.WithMessage(err, "load network from file failed")
+	}
+	// 从networks字典中取到容器连接的网络的信息，networks字典中保存了当前己经创建的网络
+	network, ok := networks[networkName]
+	if !ok {
+		return fmt.Errorf("no Such Network: %s", networkName)
+	}
+	// veth 从 bridge 解绑并删除 veth-pair 设备对
+	drivers[network.Driver].Disconnect(fmt.Sprintf("%s-%s", info.Id, networkName))
 
+	// 调用 ipAlloctor 释放容器的 IP
+	ip := net.ParseIP(info.IP)
+	if ip == nil {
+		return fmt.Errorf("invalid IP address: %s", info.IP)
+	}
+	if err = ipAllocator.Release(network.IPRange, &ip); err != nil {
+		return errors.Wrap(err, "remove Network gateway ip failed")
+	}
+
+	// 清理端口映射添加的 iptables 规则
+	ep := &Endpoint{
+		ID:          fmt.Sprintf("%s-%s", info.Id, networkName),
+		IPAddress:   net.ParseIP(info.IP),
+		Network:     network,
+		PortMapping: info.PortMapping,
+	}
+	return deletePortMapping(ep)
 }
 
 /*
@@ -339,8 +368,20 @@ func configEndpointIpAndRoute(ep *Endpoint, info *container.Info) error {
 	return nil
 }
 
+func addPortMapping(ep *Endpoint) error {
+	return configPortMapping(ep, false)
+}
+
+func deletePortMapping(ep *Endpoint) error {
+	return configPortMapping(ep, true)
+}
+
 // configPortMapping 配置端口映射
-func configPortMapping(ep *Endpoint) error {
+func configPortMapping(ep *Endpoint, isDelete bool) error {
+	action := "-A"
+	if isDelete {
+		action = "-D"
+	}
 	var err error
 	// 遍历容器端口映射列表
 	for _, pm := range ep.PortMapping {
@@ -354,8 +395,8 @@ func configPortMapping(ep *Endpoint) error {
 		// 在 iptables 的 PREROUTING 中添加 DNAT 规则
 		// 将宿主机的端口请求转发到容器的地址和端口上
 		// iptables -t nat -A PREROUTING ! -i testbridge -p tcp -m tcp --dport 8080 -j DNAT --to-destination 10.0.0.4:80
-		iptablesCmd := fmt.Sprintf("-t nat -A PREROUTING ! -i %s -p tcp -m tcp --dport %s -j DNAT --to-destination %s:%s",
-			ep.Network.Name, portMapping[0], ep.IPAddress.String(), portMapping[1])
+		iptablesCmd := fmt.Sprintf("-t nat %s PREROUTING ! -i %s -p tcp -m tcp --dport %s -j DNAT --to-destination %s:%s",
+			action, ep.Network.Name, portMapping[0], ep.IPAddress.String(), portMapping[1])
 		cmd := exec.Command("iptables", strings.Split(iptablesCmd, " ")...)
 		log.Infoln("配置端口映射 DNAT cmd:", cmd.String())
 		// 执行iptables命令,添加端口映射转发规则

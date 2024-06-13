@@ -31,13 +31,13 @@ func ListContainers() {
 	// 使用 tabwritter.NewWriter 在控制台打印出容器信息
 	// tabWriter 是引用的 text/tabwriter 类库，用于在控制台打印对齐的表格
 	w := tabwriter.NewWriter(os.Stdout, 12, 1, 3, ' ', 0)
-	_, err = fmt.Fprint(w, "ID\tNAME\tPID\tSTATUS\tCOMMAND\tCREATED\n")
+	_, err = fmt.Fprint(w, "ID\tNAME\tPID\tIP\tSTATUS\tCOMMAND\tCREATED\n")
 	if err != nil {
 		log.Errorf("Fprint error %v", err)
 	}
 	for _, item := range containers {
-		_, err = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
-			item.Id, item.Name, item.Pid, item.Status, item.Command, item.CreatedTime)
+		_, err = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			item.Id, item.Name, item.Pid, item.IP, item.Status, item.Command, item.CreatedTime)
 		if err != nil {
 			log.Errorf("Fprintf error %v", err)
 		}

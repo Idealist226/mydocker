@@ -16,7 +16,7 @@ import (
 )
 
 func RecordContainerInfo(containerPid int, cmdArray, portMapping []string,
-	containerName, containerId, volume, networkName string) (*Info, error) {
+	containerName, containerId, volume, networkName, ip string) (*Info, error) {
 	// 如果未指定容器名，则使用随机生成的 containerID
 	if containerName == "" {
 		containerName = containerId
@@ -32,6 +32,7 @@ func RecordContainerInfo(containerPid int, cmdArray, portMapping []string,
 		Volume:      volume,
 		NetworkName: networkName,
 		PortMapping: portMapping,
+		IP:          ip,
 	}
 
 	// 将容器信息序列化为 json 字符串

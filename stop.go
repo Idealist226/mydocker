@@ -2,11 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	"mydocker/constant"
-	"mydocker/container"
 	"os"
 	"strconv"
 	"syscall"
+
+	"mydocker/constant"
+	"mydocker/container"
+	"mydocker/network"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -58,6 +60,12 @@ func RemoveContainer(containerId string, force bool) {
 			return
 		}
 		container.DeleteWorkSpace(containerId, containerInfo.Volume)
+		if containerInfo.NetworkName != "" { // 清理网络资源
+			if err = network.Disconnect(containerInfo.NetworkName, containerInfo); err != nil {
+				log.Errorf("Remove container [%s]'s config failed, detail: %v", containerId, err)
+				return
+			}
+		}
 	case container.RUNNING:
 		// 如果容器正在运行，且强制删除为 true，则停止容器后删除容器信息
 		if !force {

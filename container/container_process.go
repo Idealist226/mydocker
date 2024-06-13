@@ -33,6 +33,7 @@ type Info struct {
 	Volume      string   `json:"volume"`      // 容器的数据卷
 	NetworkName string   `json:"networkName"` // 容器所在的网络
 	PortMapping []string `json:"portMapping"` // 端口映射
+	IP          string   `json:"ip"`
 }
 
 /*
