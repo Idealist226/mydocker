@@ -47,8 +47,8 @@ func (d *BridgeNetworkDriver) Delete(name string) error {
 }
 
 /* 连接一个网络和网络端点 */
-func (d *BridgeNetworkDriver) Connect(n *Network, ep *Endpoint) error {
-	bridgeName := n.Name
+func (d *BridgeNetworkDriver) Connect(networkName string, ep *Endpoint) error {
+	bridgeName := networkName
 	// 通过接口名获取到 Linux Bridge 接口的对象和接口属性
 	br, err := netlink.LinkByName(bridgeName)
 	if err != nil {
@@ -81,21 +81,33 @@ func (d *BridgeNetworkDriver) Connect(n *Network, ep *Endpoint) error {
 }
 
 /* 断开一个网络和网络端点 */
-func (d *BridgeNetworkDriver) Disconnect(network Network, endpoint *Endpoint) error {
+func (d *BridgeNetworkDriver) Disconnect(endpointID string) error {
 	// 根据名字找到对应的 Veth 设备
-	vethNme := endpoint.ID[:5] // 由于 Linux 接口名的限制,取 endpointID 的前 5 位
+	vethNme := endpointID[:5] // 由于 Linux 接口名的限制,取 endpointID 的前 5 位
 	veth, err := netlink.LinkByName(vethNme)
 	if err != nil {
 		return err
 	}
+	// 从网桥解绑
 	err = netlink.LinkSetNoMaster(veth)
 	if err != nil {
-		return err
+		return errors.WithMessagef(err, "find veth [%s] failed", vethNme)
 	}
-	//err = netlink.LinkDel(veth)
-	//if err != nil {
-	//	return err
-	//}
+	// 删除 veth-pair
+	// 一端为 xxx,另一端为 cif-xxx
+	err = netlink.LinkDel(veth)
+	if err != nil {
+		return errors.WithMessagef(err, "delete veth [%s] failed", vethNme)
+	}
+	veth2Name := "cif-" + vethNme
+	veth2, err := netlink.LinkByName(veth2Name)
+	if err != nil {
+		return errors.WithMessagef(err, "find veth [%s] failed", veth2Name)
+	}
+	err = netlink.LinkDel(veth2)
+	if err != nil {
+		return errors.WithMessagef(err, "delete veth [%s] failed", veth2Name)
+	}
 	return nil
 }
 
@@ -121,6 +133,23 @@ func (d *BridgeNetworkDriver) initBridge(n *Network) error {
 	// 4) 设置 iptables SNAT 规则
 	if err := setupIPTables(bridgeName, n.IPRange); err != nil {
 		return errors.Wrapf(err, "Error setting iptables for %s", bridgeName)
+	}
+
+	return nil
+}
+
+func (d *BridgeNetworkDriver) deleteBridge(n *Network) error {
+	bridgeName := n.Name
+
+	// get the link
+	l, err := netlink.LinkByName(bridgeName)
+	if err != nil {
+		return fmt.Errorf("getting link with name %s failed: %v", bridgeName, err)
+	}
+
+	// delete the link
+	if err = netlink.LinkDel(l); err != nil {
+		return fmt.Errorf("failed to remove bridge interface %s delete: %v", bridgeName, err)
 	}
 
 	return nil
@@ -197,6 +226,7 @@ func setupIPTables(bridgeName string, subnet *net.IPNet) error {
 	// 拼接命令
 	iptablesCmd := fmt.Sprintf("-t nat -A POSTROUTING -s %s ! -o %s -j MASQUERADE", subnet.String(), bridgeName)
 	cmd := exec.Command("iptables", strings.Split(iptablesCmd, " ")...)
+	log.Infof("配置 SNAT cmd: %v", cmd.String())
 	// 执行该命令
 	output, err := cmd.Output()
 	if err != nil {

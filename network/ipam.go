@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const ipamDefaultAllocatorPath = "/var/run/mydocker/network/ipam/subnet.json"
+const ipamDefaultAllocatorPath = "/var/lib/mydocker/network/ipam/subnet.json"
 
 type IPAM struct {
 	SubnetAllocatorPath string             // 分配文件存放位置

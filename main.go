@@ -4,6 +4,7 @@ import (
 	"os"
 
 	// 需要导入 nsenter 包，以触发代码
+
 	_ "mydocker/nsenter"
 
 	log "github.com/sirupsen/logrus"
@@ -28,6 +29,7 @@ func main() {
 		execCommand,
 		stopCommand,
 		removeCommand,
+		networkCommand,
 	}
 
 	app.Before = func(context *cli.Context) error {

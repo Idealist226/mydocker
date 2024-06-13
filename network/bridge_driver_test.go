@@ -23,7 +23,7 @@ func TestBridgeDelete(t *testing.T) {
 }
 
 func TestBridgeConnect(t *testing.T) {
-	ep := Endpoint{
+	ep := &Endpoint{
 		ID: "testcontainer",
 	}
 
@@ -32,7 +32,7 @@ func TestBridgeConnect(t *testing.T) {
 	}
 
 	d := BridgeNetworkDriver{}
-	err := d.Connect(&n, &ep)
+	err := d.Connect(n.Name, ep)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,12 +43,8 @@ func TestBridgeDisconnect(t *testing.T) {
 		ID: "testcontainer",
 	}
 
-	n := Network{
-		Name: testName,
-	}
-
 	d := BridgeNetworkDriver{}
-	err := d.Disconnect(n, &ep)
+	err := d.Disconnect(ep.ID)
 	if err != nil {
 		t.Fatal(err)
 	}

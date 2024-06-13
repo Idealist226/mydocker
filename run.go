@@ -2,16 +2,19 @@ package main
 
 import (
 	"os"
+	"strconv"
 	"strings"
 
 	"mydocker/cgroups"
 	"mydocker/cgroups/subsystems"
 	"mydocker/container"
+	"mydocker/network"
 
 	log "github.com/sirupsen/logrus"
 )
 
-func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, containerName, imageName string, envSlice []string) {
+func Run(tty bool, cmdArray, envSlice, portMapping []string, res *subsystems.ResourceConfig,
+	volume, containerName, imageName, net string) {
 	// 生成容器 ID
 	containerId := container.GenerateContainerID()
 
@@ -26,7 +29,7 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, co
 	}
 
 	// record container info
-	err := container.RecordContainerInfo(parent.Process.Pid, cmdArray, containerName, containerId, volume)
+	_, err := container.RecordContainerInfo(parent.Process.Pid, cmdArray, portMapping, containerName, containerId, volume, net)
 	if err != nil {
 		log.Errorf("Record container info error %v", err)
 		return
@@ -37,6 +40,21 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, co
 	defer cgroupManager.Destroy()
 	_ = cgroupManager.Set(res)
 	_ = cgroupManager.Apply(parent.Process.Pid, res)
+
+	// 如果制定了网络信息则进行配置
+	if net != "" {
+		// config container network
+		containerInfo := &container.Info{
+			Pid:         strconv.Itoa(parent.Process.Pid),
+			Id:          containerId,
+			Name:        containerName,
+			PortMapping: portMapping,
+		}
+		if _, err := network.Connect(net, containerInfo); err != nil {
+			log.Errorf("Error Connect Network %v", err)
+			return
+		}
+	}
 
 	// 在子进程创建后通过管道来发送参数
 	sendInitCommand(cmdArray, writePipe)
